@@ -1,0 +1,6 @@
+# 忽略 parent_folder 文件夹中的所有文件
+*.ini
+*.cc
+*.h
+*.o
+*.dll
