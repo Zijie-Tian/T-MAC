@@ -57,6 +57,8 @@ def lut_ctor(
             )
         )
         return ib.get()
+    
+    # print("fast_aggregation_k : ", fast_aggregation_k)
 
     body_code = f"lut_ctor({fast_aggregation_k}, {bits})"
     ll_code, header_code, body_code = _create_llvm("lut_ctor.cc", body_code, cc, cc_opts)

@@ -15,6 +15,8 @@ from tvm import relay
 
 logger = logging.getLogger("compile")
 
+logger.setLevel(logging.ERROR)
+
 
 def compile(
     target: str,
@@ -32,7 +34,7 @@ def compile(
         target_host = None
 
     codegen_kwargs = {
-        "dtype": dtype,
+        "dtype": dtype,     #> LUT dtype
         "target": target,
         "save_dir": FLAGS.out_path,
         "verify": False,
@@ -46,6 +48,7 @@ def compile(
         "act_group_size": FLAGS.act_group_size,
         "num_threads": 1 if FLAGS.one_thread_block else FLAGS.num_threads,
     }
+    # print(codegen_kwargs)
 
     wrapper_func_defs = {"qgemm_lut": "", "preprocessor": ""}
     wrapper_func_calls = {"qgemm_lut": "", "preprocessor": ""}
@@ -70,8 +73,21 @@ def compile(
         wrapper_func_calls[name] += wrapper_func_call
         return False
 
-
     def insert(all: Union[tvm.IRModule, Tuple[str]], new: Union[tvm.IRModule, Tuple[str]]):
+        """
+        This function integrates new IRModule or code snippets into an existing collection.
+        It first checks if the new item is a tuple and if it should be added by calling `make_call`.
+        If `all` is None, it initializes `all` with `new`.
+        If `all` is an IRModule, it updates `all` with `new`.
+        If `all` is a tuple, it concatenates the new strings to the existing ones in `all`.
+
+        Parameters:
+            all (Union[tvm.IRModule, Tuple[str]]): The existing collection of IRModules or code snippets.
+            new (Union[tvm.IRModule, Tuple[str]]): The new IRModule or code snippet to add.
+
+        Returns:
+            Union[tvm.IRModule, Tuple[str]]: The updated collection of IRModules or code snippets.
+        """        
         if isinstance(new, tuple):
             if make_call(new[0]):
                 return all
@@ -83,8 +99,9 @@ def compile(
         elif isinstance(all, tuple):
             return (all[0] + "\n" + new[0], all[1] + "\n" + new[1])
 
-
     return_type = "lower" if not FLAGS.gen_c_code else "c"
+    print("return_type : ", return_type)
+    
     mod = None
     body_code = ""
     config = configparser.ConfigParser()
@@ -115,7 +132,11 @@ def compile(
             bits=bits,
             **codegen_kwargs,
         )
+        #? Why here need to multiply bits?
+        #* Because the input tensor is int8, so the output tensor is int8 * int8 = int16
         M = M * bits
+        #! Remember i commented out the line that multiplies bits (Not sure why)
+        
         qgemm_lut.m_groups = m_groups
         preprocessor.M = M
         if FLAGS.act_group_size == -1:
@@ -132,6 +153,7 @@ def compile(
         qgemm_lut.num_threads = 1 if FLAGS.one_thread_block else FLAGS.num_threads
         template_name = qgemm_lut.get_template_name(M, N, K)
         if FLAGS.one_thread_block:
+            print("[+] Generate Tiled Kernel")
             # Reuse tuned configs set by the complete M, N, K
             # The section name in kcfg.ini will be the same as the complete M, N, K
             # The kernel name will be constructed from tiled m, n, k
@@ -188,6 +210,12 @@ def compile(
                 syslib.save(os.path.join(FLAGS.out_path, "kernels.o"))
                 dylib = tvm.build(mod)
                 dylib.export_library(os.path.join(FLAGS.out_path, "kernels.dll"))
+                
+                # #  保存对应的 C++ 代码
+                # lowered_code = tvm.lower(mod)
+                # with open(os.path.join(FLAGS.out_path, "kernels.cc"), "w") as f:
+                #     f.write(lowered_code.get_source())
+ 
     else:
         with open(os.path.join(FLAGS.out_path, "kernels.h"), "w") as f:
             wrapper_func = (wrapper_func_defs["qgemm_lut"] + " {\n" + wrapper_func_calls["qgemm_lut"] + "\n    return -1;\n}\n" +

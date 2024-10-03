@@ -44,6 +44,7 @@ inline std::string get_kcfg_file(const std::string& kcfg_file)
       return kcfg_file_cstr;
     } else {
 #ifdef TMAC_KCFG_FILE
+      LOG(INFO) << "Using TMAC_KCFG_FILE: " << STR(TMAC_KCFG_FILE);
       return STR(TMAC_KCFG_FILE);
 #else
       LOG(FATAL) << "Please set TMAC_KCFG_FILE environment variable";
@@ -155,14 +156,19 @@ public:
       /* .dtype  = */ float_dtype,
       /* .shape  = */ luts_shape,
     };
-
+    
     tvm::runtime::PackedFunc pf = get_function({M, K, N, bits, 0});
     tvm::runtime::PackedFunc qf = get_function({M, K, N, bits, 1});
+
+    LOG(INFO) << "Calling preprocessor";
 
     // Currently the parallelism of preprocessor is disabled due to large thread communication overhead in `benchmark.cc`.
     // But according to profiled results of python side, the overhead is not that large and the best NUM_THREADS should be 4.
     // TODO: Find out the reason for the high communication overhead in C++ side.
+
+    LOG(INFO) << ">>> Calling preprocessor";
     pf(B, &LUTSt, &LUTBt, &QLUTt);
+    LOG(INFO) << ">>> Calling qgemm_lut";
     qf(A, &QLUTt, scales, &LUTSt, &LUTBt, C);
   }
 #endif
@@ -172,6 +178,7 @@ public:
   // Should only be called in main thread
   void llama_cpp_init(void* B, void* qlut, void* lut_scales, void* lut_biases, int M, int K, int N, int bits)
   {
+    // LOG(INFO) << "Call llama_cpp_init with " << M << " " << K << " " << N << " " << bits;
 #ifdef TMAC_USE_TVM_THREADPOOL
     DLTensor Bt = {
       /* .data = */ B,
@@ -199,6 +206,7 @@ public:
   // Please split the blocks in llama.cpp and pass the right ptr for scales, A and C
   void llama_cpp_compute(void* A, void* scales, void* qlut, void* lut_scales, void* lut_biases, void* C, int M, int K, int N, int bits)
   {
+    // LOG(INFO) << "Call llama_cpp_compute with " << M << " " << K << " " << N << " " << bits;
 #ifdef TMAC_USE_TVM_THREADPOOL
     DLTensor At = {
       /* .data = */ A,
@@ -347,3 +355,6 @@ private:
 };
 
 } // namespace TMAC
+
+
+#pragma clang optimize on

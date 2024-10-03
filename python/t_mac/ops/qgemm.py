@@ -348,7 +348,7 @@ class QGeMMLUTBitsCodegen(OpCodegen):
 
     def get_template_name(self, M: int, N: int, K: int) -> str:
         return super().get_template_name() + f"_m{M}_k{K}_n{N}_b{self.bits}"
-
+    
 
 class QGeMMLUTBitsPreprocessorCodegen(OpCodegen):
     """Preprocessor of QGeMMLUTBitsCodegen.
@@ -451,6 +451,9 @@ class QGeMMLUTBitsPreprocessorCodegen(OpCodegen):
 
         n, k, g = sch[QLUT].op.axis
         ko, ki = sch[QLUT].split(k, factor=self.kfactor)
+        
+        # print("outside fast_aggregation_k : ", self.fast_aggregation_k)        
+        
         intrin, ll_code, header_code, body_code = lut_ctor(
             self.kfactor * 4,
             self.g,

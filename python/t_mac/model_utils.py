@@ -71,7 +71,11 @@ def parse_gptqv2(qweight: np.ndarray, scales: np.ndarray, qzeros: np.ndarray) ->
     K = qweight.shape[0] * (32 // bits)
     M = qweight.shape[1]
     group_size = K // scales.shape[0]
-
+    
+    #> K is the total number of rows in the weight matrix
+    #> M is the number of columns in the weight matrix
+    #> bits is the number of bits per integer
+    #> group_size is the number of rows in the weight matrix that are aggregated into a single row
     return K, M, bits, group_size
 
 
@@ -183,10 +187,12 @@ def extract_kernel_shapes(model_arch: Optional[str] = "gptq-auto", model_dir: Op
 
     if model_arch != "gptq-auto":
         # group_size unset
+        #> Preset kernels are defined in the format of [bits, M, K, N, m_groups]
         return _PRESET_KERNELS[model_arch]
 
     # Detect kernel shape from checkpoint
     # Only support GPTQ based
+    # TODO: Add support for other quantization methods
     return _Model(Path(model_dir)).extract_kernel_shapes()
 
 

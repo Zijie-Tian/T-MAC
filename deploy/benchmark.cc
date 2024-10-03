@@ -1,3 +1,8 @@
+#define TMAC_USE_TVM_THREADPOOL
+// #define TMAC_USE_SYSLIB
+// #define TVM_LOG_DEBUG 1
+
+#include "t-mac/kernels.h"
 #include "t-mac/tmac_gemm_wrapper.h"
 #include "arm_neon.h"
 
@@ -13,34 +18,46 @@ int main(int argc, char** argv)
   int n_threads = std::atoi(argv[6]);
   int bm = std::atoi(argv[7]);
   int g = 4;
-  int group_size = 128;
+  int group_size = 32;
   int act_group_size = 64;
-  int bits = 4;
+  int bits = 2;
 
-  TMAC::TMACGeMMWrapper<float16_t> gemm(n_threads, act_group_size);
+  TMAC::TMACGeMMWrapper<float16_t> gemm(n_threads, act_group_size, "", "");
   gemm.set_workspace(K, N);
   DLTensor* A;
   DLTensor* scales;
   DLTensor* B;
   DLTensor* C;
 
+  LOG(INFO) << "Allocating memory";
+
   int64_t A_shape[3] = {M * bits / bm, K / g, bm / 2};
   int64_t scales_shape[3] = {M * bits / bm, K / group_size, bm / bits};
   int64_t B_shape[3] = {N, K};
   int64_t C_shape[3] = {N, M};
+
+  //! NEED VERIFY THESE SHAPES !!!!
   TVMArrayAlloc(B_shape, 2, kDLFloat, 16, 1, kDLCPU, 0, &B);
   TVMArrayAlloc(A_shape, 3, kDLUInt, 8, 1, kDLCPU, 0, &A);
   TVMArrayAlloc(scales_shape, 3, kDLFloat, 16, 1, kDLCPU, 0, &scales);
   TVMArrayAlloc(C_shape, 2, kDLFloat, 16, 1, kDLCPU, 0, &C);
+  //! NEED VERIFY THESE SHAPES !!!!
+  
+
+  LOG(INFO) << "Allocated memory";
 
   for (int i = 0; i < warmup; i++) {
     gemm.run(A, scales, B, C, M, K, N, bits);
   }
 
+  LOG(INFO) << "Warmup done";
+
   auto start = std::chrono::system_clock::now();
   for (int i = 0; i < repeat; i++) {
     gemm.run(A, scales, B, C, M, K, N, bits);
   }
+
+  LOG(INFO) << "Benchmark done";
   auto end = std::chrono::system_clock::now();
   double lat = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()) / repeat / 1000;
 
