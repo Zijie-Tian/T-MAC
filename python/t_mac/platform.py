@@ -142,7 +142,7 @@ _device_kwargs = {
         "remote_kwargs": None,
         "cc_opts": ["-O3", "-std=c++17", "-march=armv8.2a+fp16", "-mllvm", "-inline-threshold=10000"],
         "out_dtype": "float16",
-        "aggregation_dtype": "int32",
+        "aggregation_dtype": "int32"
     },
     "arm_win": {
         "target": "llvm -device=arm_cpu -mtriple=aarch64-pc-windows-msvc -mattr=+v8.2a,+fullfp16,+fp-armv8,+neon",

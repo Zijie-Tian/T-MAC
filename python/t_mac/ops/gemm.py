@@ -8,7 +8,7 @@ import numpy as np
 
 class GeMMCodegen(OpCodegen):
 
-    def _define_config(self, cfg):
+    def _define_config(self, cfg, *args):
         cfg.define_knob("bm", [256, 128, 64, 32])
         cfg.define_knob("bn", [32, 16, 64])
         cfg.define_knob("kfactor", [4, 8])

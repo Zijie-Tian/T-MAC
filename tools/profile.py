@@ -36,23 +36,38 @@ def profile_codegen(
     codegen_keys = [
         FLAGS.kernel,
     ]
-
-    codegen_kwargs = {
-        "dtype": dtype,
-        "target": target,
-        "save_dir": FLAGS.out_path,
-        "verify": True,
-        "target_host": target_host,
-        "tune": FLAGS.tune,
-        "reuse_tuned": FLAGS.reuse_tuned,
-        "remote_kwargs": remote_kwargs,
-        "bits": bits,
-        "cc": cc,
-        "cc_opts": cc_opts,
-        "out_dtype": out_dtype,
-        "act_group_size": FLAGS.act_group_size if FLAGS.act_group_size != -1 else K,
-        "num_threads": num_threads,
-    }
+    
+    if FLAGS.kernel in ["qgemm_lut", "preprocessor"]:
+        codegen_kwargs = {
+            "dtype": dtype,
+            "target": target,
+            "save_dir": FLAGS.out_path,
+            "verify": True,
+            "target_host": target_host,
+            "tune": FLAGS.tune,
+            "reuse_tuned": FLAGS.reuse_tuned,
+            "remote_kwargs": remote_kwargs,
+            "bits": bits,
+            "cc": cc,
+            "cc_opts": cc_opts,
+            "out_dtype": out_dtype,
+            "act_group_size": FLAGS.act_group_size if FLAGS.act_group_size != -1 else K,
+            "num_threads": num_threads,
+        }
+    else:
+        codegen_kwargs = {
+            "dtype": dtype,
+            "target": target,
+            "tune": FLAGS.tune,
+            "reuse_tuned": FLAGS.reuse_tuned,
+            "verify": True,
+            "save_dir": FLAGS.out_path,
+            "target_host": target_host,
+            "remote_kwargs": remote_kwargs,
+            "cc": cc,
+            "cc_opts": cc_opts,
+            "num_threads": num_threads,
+        }
 
     if target == "opencl":
         codegen_keys = [k + "_cl" for k in codegen_keys]
@@ -67,11 +82,13 @@ def profile_codegen(
     }
 
     args = {
+        "gemm": (M, N, K),
         "qgemm_lut": (M, N, K),
         "preprocessor": (N, K),
     }
 
     extra_kwargs = {
+        "gemm": {},
         "qgemm_lut": {
             "group_size": FLAGS.group_size,
             "fast_aggregation": FLAGS.fast_aggregation,
@@ -85,13 +102,14 @@ def profile_codegen(
     }
 
     def _eval(codegen_key):
-        codegen = codegen_cls[codegen_key](name=codegen_key, **codegen_kwargs, **extra_kwargs[codegen_key])
+        name = codegen_key + "_m" + str(M) + "_k" + str(K) + "_n" + str(N)        
+        codegen = codegen_cls[codegen_key](name=name, **codegen_kwargs, **extra_kwargs[codegen_key])
         return 1000 * codegen.evaluate(
             *args[codegen_key],
             thread_affinity=FLAGS.thread_affinity,
             **eval_kwargs,
         )
-
+    
     return {
         k: _eval(k)
         for k in codegen_keys
@@ -104,7 +122,7 @@ def parse_args():
     parser.add_argument("-d", "--device", type=str, choices=t_mac.utils.get_devices(), default="")
     parser.add_argument("-tgt", "--target", type=str, choices=["llvm", "opencl", "vulkan"], default="llvm")
     parser.add_argument("-ta", "--thread_affinity", type=int, default=1)
-    parser.add_argument("-k", "--kernel", type=str, choices=["qgemm_lut", "preprocessor"], default="qgemm_lut")
+    parser.add_argument("-k", "--kernel", type=str, choices=["qgemm_lut", "preprocessor", "gemm"], default="qgemm_lut")
     parser.add_argument("-t", "--tune", action="store_true")
     parser.add_argument("-r", "--reuse_tuned", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -153,7 +171,7 @@ def main():
         # Huggingface BitNet 3B
         [3200, 8640, 1],
         [8640, 3200, 1],
-        [3200, 3200, 1],
+        # [3200, 3200, 1],
     ]
 
     threads = [

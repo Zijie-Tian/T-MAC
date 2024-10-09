@@ -233,6 +233,7 @@ typedef _Float16 half;
 
         return c_header, c_code
 
+    #> This is the main function that compiles the code (API)
     def compile(
         self,
         *args,
@@ -241,7 +242,7 @@ typedef _Float16 half;
         return_type: Literal["mod", "lower", "c"] = "mod",
         preserve_cfg: bool = False,
         **eval_kwargs,
-    ):
+    ):        
         template_name = self.get_template_name(*args)
 
         log_path = self.log_path
@@ -264,6 +265,8 @@ typedef _Float16 half;
             s = self._schedule(tensors)
 
             logger.info(tvm.lower(s, tensors, simple_mode=True))
+            
+            # import pdb; pdb.set_trace()
 
             func = tvm.build(s, tensors, name=template_name)
             if self.target.kind.name == "llvm":

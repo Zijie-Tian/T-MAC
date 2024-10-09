@@ -2,7 +2,7 @@
 #ifdef __cplusplus
 extern "C"
 #endif
- int32_t qgemm_lut_t1_int8_m128_k4096_n1_b4(void* A, void* LUT, void* Scales, void* LUT_Scales, void* LUT_Biases, void* C);
+ int32_t qgemm_lut_t1_int8_m512_k4096_n1_b4(void* A, void* LUT, void* Scales, void* LUT_Scales, void* LUT_Biases, void* C);
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -10,7 +10,7 @@ extern "C"
 #ifdef __cplusplus
 extern "C"
 #endif
- int32_t qgemm_lut_t1_int8_m512_k4096_n1_b4(void* A, void* LUT, void* Scales, void* LUT_Scales, void* LUT_Biases, void* C);
+ int32_t qgemm_lut_t1_int8_m128_k4096_n1_b4(void* A, void* LUT, void* Scales, void* LUT_Scales, void* LUT_Biases, void* C);
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -24,9 +24,9 @@ extern "C"
 #endif
  int32_t preprocessor_t1_int8_m16384_k11008_n1_b4(void* B, void* LUT_Scales, void* LUT_Biases, void* QLUT);inline int qgemm_lut_int8(int m, int k, int n, int b, void* A, void* LUT, void* Scales, void* LUT_Scales, void* LUT_Biases, void* C) {
 
-    if (m == 128 && k == 4096 && n == 1 && b == 4) return qgemm_lut_t1_int8_m128_k4096_n1_b4(A, LUT, Scales, LUT_Scales, LUT_Biases, C);
-
     if (m == 512 && k == 4096 && n == 1 && b == 4) return qgemm_lut_t1_int8_m512_k4096_n1_b4(A, LUT, Scales, LUT_Scales, LUT_Biases, C);
+
+    if (m == 128 && k == 4096 && n == 1 && b == 4) return qgemm_lut_t1_int8_m128_k4096_n1_b4(A, LUT, Scales, LUT_Scales, LUT_Biases, C);
 
     if (m == 512 && k == 11008 && n == 1 && b == 4) return qgemm_lut_t1_int8_m512_k11008_n1_b4(A, LUT, Scales, LUT_Scales, LUT_Biases, C);
 

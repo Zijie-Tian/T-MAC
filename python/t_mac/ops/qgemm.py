@@ -379,10 +379,10 @@ class QGeMMLUTBitsPreprocessorCodegen(OpCodegen):
         self.out_dtype = out_dtype
         if self.dtype == "int8":
             self.maxv = (1 << 7) - 1
-        self.g = g
-        self.act_group_size = act_group_size
+        self.g = g                              #> This group is the bit group size
+        self.act_group_size = act_group_size    #> This group is the quantization group size
         self.bits = bits
-        # Weights mapped from s=[0, 1] to s'=[-1, 1]
+        # Weights mapped from s=[0, 1] to s'[-1, 1]
         # s' = s * 2 - 1
         # s = (s' + 1) / 2
         self._states = [-1, 1]
@@ -396,6 +396,7 @@ class QGeMMLUTBitsPreprocessorCodegen(OpCodegen):
         self.kfactor = self.act_group_size // self.g
         super()._define_config(cfg)
 
+    #> Input : N, K and activations (N, K)
     def _compute(self, N: int, K: int):
         if K % self.act_group_size != 0:
             raise TVMError("K({}) must be devisible by act_group_size({})".format(K, self.act_group_size))
