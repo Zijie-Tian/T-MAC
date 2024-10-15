@@ -44,10 +44,15 @@ Build llama.cpp:
 mkdir build
 cd build
 cmake .. -DLLAMA_TMAC=ON -DCMAKE_PREFIX_PATH=${TMAC_ROOT_DIR}/install/lib/cmake/t-mac -DCMAKE_BUILD_TYPE=Release -DLLAMA_LLAMAFILE_DEFAULT=OFF -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+
+# CUDA 
+cmake .. -DLLAMA_TMAC=OFF -DLLAMA_CUDA=ON -DCMAKE_PREFIX_PATH=${TMAC_ROOT_DIR}/install/lib/cmake/t-mac -DCMAKE_BUILD_TYPE=Release -DLLAMA_LLAMAFILE_DEFAULT=OFF -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 # In Windows Visual Studio PowerShell:
 # cmake .. -DLLAMA_TMAC=ON -DCMAKE_PREFIX_PATH=${TMAC_ROOT_DIR}/install/lib/cmake/t-mac -DCMAKE_BUILD_TYPE=Release -DLLAMA_LLAMAFILE_DEFAULT=OFF -T ClangCL
 cmake --build . --target main llama-bench --config Release
 ```
+
+
 
 Run inference through:
 
